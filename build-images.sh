@@ -12,24 +12,31 @@ echo "Processing for $arch"
 process_dockerfile() {
   local tmpfile dockerfile
 
-  if [ -f "$1/Dockerfile.$arch" ]; then dockerfile="$1/Dockerfile.$arch"
-  elif [ -f "$1/Dockerfile.m4" ]; then
-    tmpfile="$(mktemp -tp "$1")"
-    echo "...Pre-processing $1/Dockerfile.m4 to $tmpfile"
-    m4 -P \
-      -D "$(echo "$arch" | tr '[:lower:]' '[:upper:]')" -D "m4_dockerarch=$arch" \
-		  "$1/Dockerfile.m4" > $tmpfile
-    dockerfile="$tmpfile"
-  elif [ -f "$1/Dockerfile" ]; then dockerfile="$1/Dockerfile"
-  else exit 1
+  if [ -f "$1/Makefile" ] && make -C "$1" -n docker >/dev/null; then
+    DOCKER_TAG="t_$$" make -C "$1" docker
+  else
+    if [ -f "$1/Dockerfile.$arch" ]; then dockerfile="$1/Dockerfile.$arch"
+    elif [ -f "$1/Dockerfile.m4" ]; then
+      tmpfile="$(mktemp -tp "$1")"
+      echo "...Pre-processing $1/Dockerfile.m4 to $tmpfile"
+      m4 -P \
+        -D "$(echo "$arch" | tr '[:lower:]' '[:upper:]')" -D "m4_dockerarch=$arch" \
+  		  "$1/Dockerfile.m4" > $tmpfile
+      dockerfile="$tmpfile"
+    elif [ -f "$1/Dockerfile" ]; then
+      dockerfile="$1/Dockerfile"
+    else
+      echo "No way to build Docker image was found"
+      exit 1
+    fi
+
+    echo "...Processing $dockerfile"
+
+    #label=$(grep '^#LABEL ' "$dockerfile" | sed -n 's/^#LABEL \(.*\)$/\1/p')
+    docker build -t "t_$$" -f "$dockerfile" "$1" || {
+      echo Failure building $1; exit 1
+    }
   fi
-
-  echo "...Processing $dockerfile"
-
-  #label=$(grep '^#LABEL ' "$dockerfile" | sed -n 's/^#LABEL \(.*\)$/\1/p')
-  docker build -t "t_$$" -f "$dockerfile" "$1" || {
-    echo Failure building $1; exit 1
-  }
 
   #  TODO:  Fail gracefully if the LABELs weren't set up properly
   docker inspect "t_$$" \
@@ -54,7 +61,12 @@ process_dockerfile() {
 
 if [ "$#" -eq 0 ]; then
   compgen -G '*/Dockerfile*' | xargs dirname | uniq | \
-  while read i; do process_dockerfile "$i"; done
+  while read i; do
+    process_dockerfile "$i";
+  done
 else
-  while [ "$#" -ne 0 ]; do [ -d "$1" ] && process_dockerfile "$1"; shift; done
+  while [ "$#" -ne 0 ]; do
+    process_dockerfile "$1"
+    shift
+  done
 fi
