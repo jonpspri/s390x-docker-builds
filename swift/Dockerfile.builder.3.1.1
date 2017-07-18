@@ -13,7 +13,7 @@
 
 #  Using 'zesty' because of clang-4.0 access.  I may try to get a backport to
 #  xenial forward, but that's yet one more thing to do...
-FROM jpspring/s390x-openwhisk:xenial-gold
+FROM docker.xanophis.com/s390x/xenial-gold:latest
 
 #  Tools, libraries and dev packages (includes) needed to run the build
 RUN apt-get update && apt-get -y install \
