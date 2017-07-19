@@ -13,8 +13,8 @@
 
 FROM s390x/ubuntu:xenial
 
-#  Debian distros do not include the 'gold' linker by default, so instead
-#  we must build and install it from scratch.
+#  Debian distros for s390 x do not include the 'gold' linker by default, so
+#  instead we must build and install it from scratch.
 RUN apt-get update \
  && apt-get -y install --no-install-recommends \
         autoconf automake libtool git cmake ninja-build python \
@@ -45,21 +45,22 @@ RUN mkdir -p /blocksruntime && cd /blocksruntime \
  && cd / && rm -rf /blocksruntime \
  && :
 
-#  These are directions on building Swift 3.0.1 from 
+#  These are directions on building Swift 3.0.1 from
 #  https://github.com/linux-on-ibm-z/docs/wiki/Building-Swift
+
+ARG BUILD_BRANCH=3.0
 RUN : \
  && git clone https://github.com/linux-on-ibm-z/llvm.git \
  && cd llvm \
- && git checkout llvm-for-swift-3.0 \
+ && git checkout "llvm-for-swift-${BUILD_BRANCH}" \
  && cd tools \
  && git clone https://github.com/linux-on-ibm-z/clang.git \
  && cd clang \
- && git checkout clang-for-swift-3.0 \
+ && git checkout "clang-for-swift-${BUILD_BRANCH}" \
  && cd ../../projects \
  && git clone https://github.com/linux-on-ibm-z/compiler-rt.git \
  && cd compiler-rt \
  && git checkout compiler-rt-for-swift-3.0 && cd .. \
-
  && mkdir /llvm-build \
  && cd /llvm-build \
  && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/llvm \
@@ -73,8 +74,8 @@ RUN : \
  && rm -rf /llvm /llvm-build
 
 ENV PATH=/opt/llvm/bin:$PATH
-ARG RELEASE=swift-3.0.2-RELEASE
 
+ARG RELEASE=swift-3.0.2-RELEASE
 RUN : \
  && mkdir swift3 && cd swift3 \
  && git clone https://github.com/apple/swift.git \
@@ -87,16 +88,18 @@ RUN : \
  && if [ "$RELEASE" = "swift-3.0.1-RELEASE" ]; then : \
        && cd /swift3/swiftpm \
        && git config user.email "dummy@test.org" \
-       && git config user.nae "Dummy Name" \
+       && git config user.name "Dummy Name" \
        && git cherry-pick ad3228bea5c4919c476e17ae6beca079f1a7845f \
   ; fi \
  && /swift3/swift/utils/build-script -j 2 -R -- \
-	--foundation --xctest --llbuild --swiftpm --libdispatch -- \
-	--install-swift --install-foundation --install-xctest --install-llbuild --install-swiftpm --install-libdispatch \
-	--swift-install-components='autolink-driver;compiler;clang-builtin-headers;stdlib;sdk-overlay;license' \
-	--build-swift-static-stdlib=1 \
-	--install-prefix=/usr \
-	--install-destdir=/swift3-build
-
-RUN cd /swift3-build \
- && tar zfcv /${RELEASE}.tar.gz usr
+    	--foundation --xctest --llbuild --swiftpm --libdispatch -- \
+    	--install-swift --install-foundation --install-xctest --install-llbuild \
+      --install-swiftpm --install-libdispatch \
+    	--swift-install-components='autolink-driver;compiler;clang-builtin-headers;stdlib;sdk-overlay;license' \
+    	--build-swift-static-stdlib=1 \
+    	--install-prefix=/usr \
+    	--install-destdir=/swift3-build
+ && cd /swift3-build \
+ && tar zfcv /${RELEASE}.tar.gz usr \
+ && find . -name '*.o' -print0 | xargs rm -0 \
+ && :
