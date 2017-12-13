@@ -6,9 +6,9 @@
 
 # TODO:  Consider integrating into the Kafka project?
 
-FROM s390x/ibmjava:sfj
+FROM s390x/openjdk:8-jre-alpine
 
-LABEL image_name=kafka tags=0.11,latest
+LABEL image_name=chas-kafka tags=0.11,latest
 
 # The Scala 2.12 build is currently recommended by the project.
 ENV KAFKA_VERSION=0.11.0.0 KAFKA_SCALA_VERSION=2.11 JMX_PORT=7203

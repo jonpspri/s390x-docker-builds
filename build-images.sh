@@ -1,5 +1,11 @@
 #!/bin/bash
 
+#
+#  Usage:
+#
+#  build_images.sh [ image_directory ... ]
+#
+
 shopt -s lastpipe
 
 DOCKER_REGISTRY=${DOCKER_REGISTRY:-docker.xanophis.com}

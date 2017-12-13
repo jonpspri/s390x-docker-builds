@@ -4,10 +4,10 @@ FROM s390x/ubuntu:xenial
 ARG kafka_version=0.11.0.2
 ARG scala_version=2.12
 
-MAINTAINER wurstmeister
+#MAINTAINER wurstmeister
+LABEL image_name=wurstmeister-kafka tags=0.11,latest
 
 #RUN apk add --update unzip wget curl docker jq coreutils
-
 RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y \
 	curl \
 	docker.io \
