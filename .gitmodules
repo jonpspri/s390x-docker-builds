@@ -1,3 +1,0 @@
-[submodule "openwhisk-apigateway"]
-	path = openwhisk-apigateway
-	url = git@github.com:jonpspri/openwhisk-apigateway.git
