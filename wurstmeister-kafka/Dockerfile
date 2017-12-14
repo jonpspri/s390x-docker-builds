@@ -30,7 +30,7 @@ VOLUME ["/kafka"]
 ENV KAFKA_HOME /opt/kafka
 ENV PATH ${PATH}:${KAFKA_HOME}/bin
 
-#  This is here to turn of Garbage Collector logging, which messes with OpenJDK's mind
+#  This is here to turn off Garbage Collector logging, which messes with OpenJDK's mind
 ENV EXTRA_ARGS -name kafkaServer
 
 #  In OpenJDK 9 onward, it's necessary to explicitly include the java.xml.bind module
