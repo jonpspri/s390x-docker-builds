@@ -1,4 +1,4 @@
-FROM s390x/ubuntu:xenial
+FROM s390x/ubuntu:rolling
 #FROM anapsix/alpine-java
 
 ARG kafka_version=0.11.0.2
@@ -12,19 +12,30 @@ RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y \
 	curl \
 	docker.io \
 	jq \
-	openjdk-8-jre \
+	net-tools \
+	openjdk-9-jre-headless \
  	unzip \
 	wget \
  && rm -rf /var/lib/apt/lists/*
 
 ENV KAFKA_VERSION=$kafka_version SCALA_VERSION=$scala_version
 ADD download-kafka.sh /tmp/download-kafka.sh
-RUN chmod a+x /tmp/download-kafka.sh && sync && /tmp/download-kafka.sh && tar xfz /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz -C /opt && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && ln -s /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION} /opt/kafka
+RUN chmod a+x /tmp/download-kafka.sh && sync && /tmp/download-kafka.sh \
+ && tar xfz /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz -C /opt \
+ && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
+ && ln -s /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION} /opt/kafka 
 
 VOLUME ["/kafka"]
 
 ENV KAFKA_HOME /opt/kafka
 ENV PATH ${PATH}:${KAFKA_HOME}/bin
+
+#  This is here to turn of Garbage Collector logging, which messes with OpenJDK's mind
+ENV EXTRA_ARGS -name kafkaServer
+
+#  In OpenJDK 9 onward, it's necessary to explicitly include the java.xml.bind module
+ENV KAFKA_OPTS --add-modules java.xml.bind
+
 ADD start-kafka.sh /usr/bin/start-kafka.sh
 ADD broker-list.sh /usr/bin/broker-list.sh
 ADD create-topics.sh /usr/bin/create-topics.sh
