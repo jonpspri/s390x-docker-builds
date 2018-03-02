@@ -1,4 +1,4 @@
-FROM s390x/ubuntu:xenial
+FROM ubuntu:xenial
 
 LABEL image_name=couchdb tags=latest
 
