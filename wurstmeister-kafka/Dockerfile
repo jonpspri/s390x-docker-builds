@@ -1,6 +1,6 @@
 FROM openjdk:jre-alpine
 
-ARG kafka_version=1.0.0
+ARG kafka_version=0.11.0.2
 ARG scala_version=2.12
 
 #MAINTAINER wurstmeister
@@ -13,9 +13,10 @@ ENV KAFKA_VERSION=$kafka_version \
 
 COPY download-kafka.sh start-kafka.sh broker-list.sh create-topics.sh /tmp/
 
-RUN apk add --update unzip wget curl docker jq coreutils \
+RUN apk add --update bash unzip wget curl docker jq coreutils \
  && chmod a+x /tmp/*.sh \
  && mv /tmp/start-kafka.sh /tmp/broker-list.sh /tmp/create-topics.sh /usr/bin \
+ && echo "--- Starting download of kafka_${scala_version}_${kafka_version}" \
  && /tmp/download-kafka.sh \
  && mkdir -p /opt \
  && tar xfz /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz -C /opt \
