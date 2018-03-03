@@ -1,4 +1,4 @@
-FROM openjdk:jre-alpine
+FROM openjdk:9-jre-slim
 
 ARG kafka_version=0.11.0.2
 ARG scala_version=2.12
@@ -11,10 +11,13 @@ ENV KAFKA_VERSION=$kafka_version \
     KAFKA_HOME=/opt/kafka \
     PATH=${PATH}:${KAFKA_HOME}/bin
 
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends bash curl jq wget \
+ && rm -rf /var/lib/apt/lists/* 
+
 COPY download-kafka.sh start-kafka.sh broker-list.sh create-topics.sh /tmp/
 
-RUN apk add --update bash unzip wget curl docker jq coreutils \
- && chmod a+x /tmp/*.sh \
+RUN chmod a+x /tmp/*.sh \
  && mv /tmp/start-kafka.sh /tmp/broker-list.sh /tmp/create-topics.sh /usr/bin \
  && echo "--- Starting download of kafka_${scala_version}_${kafka_version}" \
  && /tmp/download-kafka.sh \
@@ -22,7 +25,15 @@ RUN apk add --update bash unzip wget curl docker jq coreutils \
  && tar xfz /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz -C /opt \
  && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && ln -s /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION} /opt/kafka \
- && rm /tmp/*
+ # A bunch of hacks needed to run with Java 9
+ && sed -i.bak -e '/KAFKA_GC_LOG_OPTS=/s/-XX:.PrintGC\(Date\|Time\)Stamps //g' \
+               -e '/KAFKA_GC_LOG_OPTS=/s/-XX:.UseGCLogFileRotation //' \
+               -e '/KAFKA_GC_LOG_OPTS=/s/-XX:NumberOfGCLogFiles=10 //' \
+               -e '/KAFKA_GC_LOG_OPTS=/s/-XX:GCLogFileSize=100M//' \
+               -e '/\(nohup\|exec\) [$]JAVA/s/JAVA /JAVA --add-modules java.xml.bind /' \
+               /opt/kafka/bin/kafka-run-class.sh \
+ && rm /tmp/download-kafka.sh 
+
 
 VOLUME ["/kafka"]
 
