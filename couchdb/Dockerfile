@@ -100,7 +100,13 @@ RUN buildDeps=' \
  && curl -fSL https://dist.apache.org/repos/dist/release/couchdb/source/$COUCHDB_VERSION/apache-couchdb-$COUCHDB_VERSION.tar.gz.asc -o couchdb.tar.gz.asc \
  && gpg --batch --verify couchdb.tar.gz.asc couchdb.tar.gz \
  && tar -xzf couchdb.tar.gz -C couchdb --strip-components=1 \
- && cd couchdb \
+ && cd /usr/src/couchdb \
+ # There's a small problem preventing couchdb from compiling on ARM64 without a patch
+ && if [ "$(uname -m)" = "aarch64" ]; then (\
+         cd src/rebar \
+      && sed -i.bak -e '/linux/s/-m64 //' src/rebar_port_compiler.erl \
+      && ./bootstrap && mv -v ./rebar /usr/src/couchdb/bin/rebar \
+    ); fi \
  # Build the release and install into /opt
  && ./configure --disable-docs \
  && make release \
