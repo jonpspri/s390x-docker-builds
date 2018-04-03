@@ -10,20 +10,17 @@ RUN apt-get update \
 	 && update-ca-certificates \
 	 && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /swift-source
 
 RUN git clone https://github.com/mackyle/blocksruntime \
 	&& (cd blocksruntime \
 		&& ./buildlib \
 		&& prefix=/usr ./installlib)
 
-WORKDIR /swift-source
-
-RUN git clone https://github.com/apple/swift.git
-
 ARG swiftversion=4.1
-
-RUN ./swift/utils/update-checkout --clone --scheme swift-${swiftversion}-branch
+RUN mkdir -p /swift-source /swift-dest
+WORKDIR /swift-source
+RUN git clone https://github.com/apple/swift.git \
+    && ./swift/utils/update-checkout --clone --scheme swift-${swiftversion}-branch
 
 RUN mkdir -p /swift-dest \
 	&& ./swift/utils/build-script --preset=buildbot_linux \
