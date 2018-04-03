@@ -16,7 +16,10 @@ WORKDIR /swift-source
 
 RUN git clone https://github.com/apple/swift.git
 RUN ./swift/utils/update-checkout --clone --scheme swift-4.1-branch
-RUN ./swift/utils/build-script -r
+RUN mkdir -p /swift-dest \
+	&& ./swift/utils/build-script --preset=buildbot_linux \
+		install_destdir=/swift-dest \
+		installable_package=/swift-4.1-linux-$(uname -m).tar.gz
 
 # VIM: let b:syntastic_dockerfile_hadolint_args = "--ignore DL3008"
 
