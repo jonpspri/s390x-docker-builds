@@ -2,11 +2,11 @@ FROM ubuntu:bionic
 
 RUN apt-get update \
 	 && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-		 git cmake ninja-build clang python uuid-dev libicu-dev icu-devtools \
+		 git cmake ninja-build python uuid-dev libicu-dev icu-devtools \
 		 libbsd-dev libedit-dev libxml2-dev libsqlite3-dev swig libpython-dev \
 		 libncurses5-dev pkg-config libcurl4-openssl-dev \
 		 autoconf libtool systemtap-sdt-dev tzdata rsync \
-		 ca-certificates \
+		 ca-certificates gcc g++ \
 	 && update-ca-certificates \
 	 && rm -rf /var/lib/apt/lists/*
 
@@ -14,10 +14,25 @@ RUN apt-get update \
 RUN git clone https://github.com/mackyle/blocksruntime \
 	&& (cd blocksruntime \
 		&& ./buildlib \
-		&& prefix=/usr ./installlib)
+		&& prefix=/usr/local ./installlib) \
+	&& rm -rf blocksruntime
 
 ARG swiftversion=4.1
-RUN mkdir -p /swift-source /swift-dest
+RUN mkdir -p /llvm-source/clang-build /swift-source /swift-dest
+
+WORKDIR /llvm-source
+RUN git clone https://github.com/llvm-project/llvm-project-20170507/ llvm-project \
+ && (cd llvm-project && git config branch.master.rebase true) \
+ && (cd clang-build \
+	&& cmake -GNinja ../llvm-project/llvm \
+	    -DLLVM_ENABLE_PROJECTS=clang \
+	    -DCMAKE_INSTALL_PREFIX=/usr/local \
+	    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+	&& ninja install \
+    )
+
+RUN exit 1
+
 WORKDIR /swift-source
 RUN git clone https://github.com/apple/swift.git \
     && ./swift/utils/update-checkout --clone --scheme swift-${swiftversion}-branch
