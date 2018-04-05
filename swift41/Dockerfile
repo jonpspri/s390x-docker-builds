@@ -1,4 +1,4 @@
-FROM ubuntu:bionic
+FROM ubuntu:xenial
 
 RUN apt-get update \
 	 && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -6,7 +6,7 @@ RUN apt-get update \
 		 libbsd-dev libedit-dev libxml2-dev libsqlite3-dev swig libpython-dev \
 		 libncurses5-dev pkg-config libcurl4-openssl-dev \
 		 autoconf libtool systemtap-sdt-dev tzdata rsync \
-		 ca-certificates \
+		 ca-certificates curl bison flex texinfo gnupg-curl \
 	 && update-ca-certificates \
 	 && rm -rf /var/lib/apt/lists/*
 
@@ -16,8 +16,20 @@ RUN git clone https://github.com/mackyle/blocksruntime \
 		&& ./buildlib \
 		&& prefix=/usr ./installlib)
 
+ARG binutilsversion=2.30
+COPY binutils-${binutilsversion}.tar.gz.sig /
+RUN curl -sSLO https://ftpmirror.gnu.org/gnu/binutils/binutils-${binutilsversion}.tar.gz \
+    && gpg --keyserver pool.sks-keyservers.net --recv-key DD9E3C4F \
+    && gpg --verify binutils-${binutilsversion}.tar.gz.sig binutils-${binutilsversion}.tar.gz \
+    && tar zfx binutils-${binutilsversion}.tar.gz \
+    && (cd binutils-${binutilsversion} \
+	&& ./configure --enable-gold \
+	&&  make && make install ) \
+    && rm -rf binutils-${binutilsversion} binutils-${binutilsversion}.tar.gz
+
 ARG swiftversion=4.1
-RUN mkdir -p /swift-source /swift-dest
+RUN mkdir -p /swift-source 
+
 WORKDIR /swift-source
 RUN git clone https://github.com/apple/swift.git \
     && ./swift/utils/update-checkout --clone --scheme swift-${swiftversion}-branch
@@ -46,15 +58,4 @@ RUN if [ "$(uname -m)-${swiftversion}" = "ppc64le-4.1" ]; then \
     ) \
  ;fi
 
-RUN mkdir -p /swift-dest \
-	&& ./swift/utils/build-script -r \
-	    --lldb -- \
-	    --verbose-build=1 --install-swift \
-	    --swift-install-components='autolink-driver;compiler;clang-builtin-headers;stdlib;sdk-overlay;license' \
-	    --build-swift-static-stdlib=1 \
-	    --install-prefix=/usr \
-	    --install-destdir=/swift-dest \
-	    --installable-package=/swift-${swiftversion}-linux-$(uname -m).tar.gz
-
-# VIM: let b:syntastic_dockerfile_hadolint_args = "--ignore DL3008"
-
+RUN ./swift/utils/build-toolchain swift-${swiftversion}-linux-$(uname -m)
