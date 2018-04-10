@@ -1,0 +1,69 @@
+From b3053aba44dd27f1ee32237421b490275a73ff5e Mon Sep 17 00:00:00 2001
+From: asowani <sowania@us.ibm.com>
+Date: Thu, 8 Mar 2018 15:09:13 +0530
+Subject: [PATCH] ppc64le port.
+
+---
+ lib/Basic/Targets/PPC.h    |  9 +++++++++
+ lib/CodeGen/TargetInfo.cpp | 13 +++++++++++--
+ 2 files changed, 20 insertions(+), 2 deletions(-)
+
+diff --git a/lib/Basic/Targets/PPC.h b/lib/Basic/Targets/PPC.h
+index 04bef258e38..cd7ce34f879 100644
+--- a/lib/Basic/Targets/PPC.h
++++ b/lib/Basic/Targets/PPC.h
+@@ -334,6 +334,15 @@ class LLVM_LIBRARY_VISIBILITY PPC64TargetInfo : public PPCTargetInfo {
+     }
+     return false;
+   }
++
++  CallingConvCheckResult checkCallingConvention(CallingConv CC) const override {
++    switch (CC) {
++    case CC_Swift:
++      return CCCR_OK;
++    default:
++      return CCCR_Warning;
++    }
++  }
+ };
+ 
+ class LLVM_LIBRARY_VISIBILITY DarwinPPC32TargetInfo
+diff --git a/lib/CodeGen/TargetInfo.cpp b/lib/CodeGen/TargetInfo.cpp
+index f523096d95c..6f38ead0433 100644
+--- a/lib/CodeGen/TargetInfo.cpp
++++ b/lib/CodeGen/TargetInfo.cpp
+@@ -4283,7 +4283,7 @@ PPC32TargetCodeGenInfo::initDwarfEHRegSizeTable(CodeGen::CodeGenFunction &CGF,
+ 
+ namespace {
+ /// PPC64_SVR4_ABIInfo - The 64-bit PowerPC ELF (SVR4) ABI information.
+-class PPC64_SVR4_ABIInfo : public ABIInfo {
++class PPC64_SVR4_ABIInfo : public SwiftABIInfo {
+ public:
+   enum ABIKind {
+     ELFv1 = 0,
+@@ -4327,7 +4327,7 @@ class PPC64_SVR4_ABIInfo : public ABIInfo {
+ public:
+   PPC64_SVR4_ABIInfo(CodeGen::CodeGenTypes &CGT, ABIKind Kind, bool HasQPX,
+                      bool SoftFloatABI)
+-      : ABIInfo(CGT), Kind(Kind), HasQPX(HasQPX),
++      : SwiftABIInfo(CGT), Kind(Kind), HasQPX(HasQPX),
+         IsSoftFloatABI(SoftFloatABI) {}
+ 
+   bool isPromotableTypeForABI(QualType Ty) const;
+@@ -4370,6 +4370,16 @@ class PPC64_SVR4_ABIInfo : public ABIInfo {
+ 
+   Address EmitVAArg(CodeGenFunction &CGF, Address VAListAddr,
+                     QualType Ty) const override;
++
++  bool shouldPassIndirectlyForSwift(CharUnits totalSize,
++                                    ArrayRef<llvm::Type*> scalars,
++                                    bool asReturnValue) const override {
++    return occupiesMoreThan(CGT, scalars, /*total*/ 4);
++  }
++
++  bool isSwiftErrorInRegister() const override {
++    return false;
++  }
+ };
+ 
+ class PPC64_SVR4_TargetCodeGenInfo : public TargetCodeGenInfo {
