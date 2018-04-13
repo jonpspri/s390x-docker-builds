@@ -69,12 +69,39 @@ RUN if [ "$(uname -m)-${swiftversion}" = "ppc64le-4.1" ]; then \
 	) \
   ;fi
 
+#  LLDB has cross-platform issues and may not be needed by 
 RUN mkdir /swift-build \
     && /swift-source/swift/utils/build-script \
-	#--preset-file /build-presets.ini \
-	--preset=buildbot_linux_1604 \
-        install_destdir=/swift-build \
-	"installable_package=/swift-${swiftversion}-$(uname -m)" \
+	--release --assertions \
+	#--lldb \
+	--llbuild \
+	--swiftpm \
+	--xctest \
+	--no-swift-stdlib-assertions \
+	--test --validation-test --long-test \
+	--foundation \
+	--libdispatch \
+	--lit-args=-v \
+	-- \
+	--build-ninja \
+	--install-swift \
+	#--install-lldb \
+	--install-llbuild \
+	--install-swiftpm \
+	--install-xctest \
+	--install-prefix=/usr \
+	--swift-install-components=autolink-driver;compiler;clang-builtin-headers;stdlib;swift-remote-mirror;sdk-overlay;license;sourcekit-inproc \
+	--swift-enable-ast-verifier=0 \
+	--build-swift-static-stdlib \
+	--build-swift-static-sdk-overlay \
+	--build-swift-stdlib-unittest-extra \
+	--test-installable-package \
+	--install-destdir=/swift-build \
+	--installable-package "swift-ow-linux-$(uname -m)" \
+	#--skip-test-lldb
+	--install-foundation \
+	--install-libdispatch \
+	--reconfigure \
     || exit 0
 
 #  VIM:  let b:syntastic_dockerfile_hadolint_args="--ignore SC2154 --ignore DL3008"
